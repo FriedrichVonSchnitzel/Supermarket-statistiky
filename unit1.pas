@@ -38,17 +38,19 @@ type
   end;
 
 type
-  items=record
+  {items=record
     code: integer;
     quantity: integer;
     price: real;
-  end;
+  end;}
 
   ln=record
     norp: char;
     id: integer;
-    transaction: array [1..90] of items;
-    //cena za nakup? real
+    //transaction: array [1..90] of items;
+    code: integer;
+    quantity: integer;
+    price: real;
   end;
 
 
@@ -101,23 +103,23 @@ begin
            chfield:=chfield+ch;
            read(stats, ch);
        end;
-       db[i].transaction[i].code:=strtoint(chfield);
+       db[i].code:=strtoint(chfield);
        read(stats,ch);
        chfield:='';
        while ch<>';' do begin              //quantity
            chfield:=chfield+ch;
            read(stats, ch);
        end;
-       db[i].transaction[i].quantity:=strtoint(chfield);
+       db[i].quantity:=strtoint(chfield);
        chfield:='';
-       readln(stats, db[i].transaction[i].price);
+       readln(stats, db[i].price);
        chfield:='';
    end;
 
    closefile(stats);
    //finally
    for i:=1 to lines do begin
-       memo2.append(db[i].norp+' '+inttostr(db[i].id)+' '+inttostr(db[i].transaction[i].code)+' '+inttostr(db[i].transaction[i].quantity)+' '+floattostr(db[i].transaction[i].price));
+       memo2.append(db[i].norp+' '+inttostr(db[i].id)+' '+inttostr(db[i].code)+' '+inttostr(db[i].quantity)+' '+floattostr(db[i].price));
    end;
 
   for i:=1 to lines do begin
@@ -129,10 +131,10 @@ begin
             inc(customers);
           end;
 
-          revenue:=revenue+(db[i].transaction[i].quantity*db[i].transaction[i].price);
+          revenue:=revenue+(db[i].quantity*db[i].price);
       end
       else begin
-          expanses:=expanses+(db[i].transaction[i].quantity*db[i].transaction[i].price);
+          expanses:=expanses+(db[i].quantity*db[i].price);
       end;
   end;
   avarage:=revenue / customers; //delene pocet rovnakych id
@@ -147,12 +149,12 @@ begin
   expansesLabel.caption:=floattostr(expanses)+'€';
   resultLabel.caption:=floattostr(result)+'€';
 
-
-
   memo1.clear;
   //loop po vsetkych P, pri kazdom P skontrolovat vsetky P, if P ma rovnaky kod
   //ako aktualne P, zvysit premennu. potom sort
-  Memo1.append(inttostr(0)+'. '+'Example polozka');
+
+  for i:=1 to 10 do
+      Memo1.append(inttostr(i)+'. '+'Example polozka');
 
    //treba zavriet co najskor
 end;
