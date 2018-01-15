@@ -38,16 +38,14 @@ type
   end;
 
 type
-  {items=record
+  sales=record
     code: integer;
-    quantity: integer;
-    price: real;
-  end;}
+    sold: integer;
+  end;
 
   ln=record
     norp: char;
     id: integer;
-    //transaction: array [1..90] of items;
     code: integer;
     quantity: integer;
     price: real;
@@ -56,9 +54,9 @@ type
 
 var
   Form1: TForm1;
-  revenue, expanses: real;
-  stats: textfile;
+  stats_file: textfile;
   db: array of ln;
+  unique: array of sales;
 implementation
 
 {$R *.lfm}
@@ -67,60 +65,63 @@ implementation
 
 procedure TForm1.Timer1Timer(Sender: TObject);
 var avarage, revenue, expanses, result: real;
-  lines, i, customers, idaside, basket: integer;
+  lines, i, y, customers, idaside: integer;
   ch: char;
   chfield: string;
 begin
+   Memo1.clear;
+   Memo2.clear;
    customers:=0;
    revenue:=0;
    expanses:=0;
    avarage:=0;
    result:=0;
    idaside:=0;
-   basket:=0;
+   for i:=1 to 90 do begin
+    db[i].code:=0;
+    unique[i].code:=0;
+   end;
+
+
    try
-      assignfile(stats, 'STATISTIKY.txt');
-      reset(stats);                            // path \\comenius\public\market\tima\
+      assignfile(stats_file, 'STATISTIKY.txt');
+      reset(stats_file);                            // path \\comenius\public\market\tima\
    except on E: EInOutError do begin
        label3.caption:=('Pri načítavaní súboru došlo k chybe: '+ E.ClassName+ '/'+ E.Message);
        exit;
    end;
    end;
-      readln(stats, lines);                   //ziskaj kolko ma subor riadkov
+      readln(stats_file, lines);                   //ziskaj kolko ma subor riadkov
       label3.caption:='';
       for i:=1 to lines do begin              //while not eof?
-       read(stats, db[i].norp);
-       read(stats,ch);                     //je ;
-       read(stats, ch);
+       read(stats_file, db[i].norp);
+       read(stats_file,ch);                     //je ;
+       read(stats_file, ch);
        while ch<>';' do begin              //id
            chfield:=chfield+ch;
-           read(stats, ch);
+           read(stats_file, ch);
        end;
        db[i].id:=strtoint(chfield);
-       read(stats,ch);
+       read(stats_file,ch);
        chfield:='';
        while ch<>';' do begin              //code
            chfield:=chfield+ch;
-           read(stats, ch);
+           read(stats_file, ch);
        end;
        db[i].code:=strtoint(chfield);
-       read(stats,ch);
+       read(stats_file,ch);
        chfield:='';
        while ch<>';' do begin              //quantity
            chfield:=chfield+ch;
-           read(stats, ch);
+           read(stats_file, ch);
        end;
        db[i].quantity:=strtoint(chfield);
        chfield:='';
-       readln(stats, db[i].price);
+       readln(stats_file, db[i].price);
        chfield:='';
    end;
 
-   closefile(stats);
-   //finally
-   for i:=1 to lines do begin
-       memo2.append(db[i].norp+' '+inttostr(db[i].id)+' '+inttostr(db[i].code)+' '+inttostr(db[i].quantity)+' '+floattostr(db[i].price));
-   end;
+   closefile(stats_file);
 
   for i:=1 to lines do begin
       if db[i].norp = 'P' then begin
@@ -130,13 +131,37 @@ begin
             idaside:=db[i].id;
             inc(customers);
           end;
-
           revenue:=revenue+(db[i].quantity*db[i].price);
+          for y:=1 to lines do begin
+           if unique[y].code=db[i].code then begin
+              unique[y].sold:=unique[y].sold+1; //* db[i].quantity
+              Break;
+           end
+           else if unique[y].code=0 then begin
+               unique[y].code:=db[i].code;
+               unique[y].sold:=1;
+               Break;
+           end;
+       end;
       end
       else begin
           expanses:=expanses+(db[i].quantity*db[i].price);
       end;
   end;
+
+  FOR i := 1 TO lines DO
+      FOR y := i+1 to 10 DO
+          IF unique[i].sold < unique[y].sold THEN begin
+             //swap
+             idaside:=unique[i].code;
+             unique[i].code:=unique[y].code;
+             unique[y].code:=idaside;
+
+             idaside:=unique[i].sold;
+             unique[i].sold:=unique[y].sold;
+             unique[y].sold:=idaside;
+          end;
+
   avarage:=revenue / customers; //delene pocet rovnakych id
   avarage:=roundto(avarage, -2);
   result:=revenue-expanses;
@@ -144,25 +169,30 @@ begin
   else resultLabel.font.color:=clGreen;
   //output
   customersLabel.caption:=inttostr(customers);
-  avarageLabel.caption:=floattostr(avarage);
+  avarageLabel.caption:=floattostr(avarage)+'€';
   revenueLabel.caption:=floattostr(revenue)+'€';
   expansesLabel.caption:=floattostr(expanses)+'€';
   resultLabel.caption:=floattostr(result)+'€';
 
   memo1.clear;
-  //loop po vsetkych P, pri kazdom P skontrolovat vsetky P, if P ma rovnaky kod
-  //ako aktualne P, zvysit premennu. potom sort
+  memo2.clear;
 
   for i:=1 to 10 do
-      Memo1.append(inttostr(i)+'. '+'Example polozka');
+      Memo1.append(inttostr(i)+'. '+inttostr(unique[i].code)+' '+inttostr(unique[i].sold));
+  y:=1;
+  for i:=lines downto 0 do
+      if unique[i].code <> 0 then begin
 
-   //treba zavriet co najskor
+      Memo2.append(inttostr(y)+'. '+inttostr(unique[i].code)+' '+inttostr(unique[i].sold));
+      inc(y);
+      if y>10 then break;
+      end;
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-   setlength(db,90);
-   //setlength(db.transaction,90);
+   setlength(db, 90);
+   setlength(unique, 90);
 end;
 
 end.
